@@ -35,14 +35,33 @@ class Settings:
         }
 
 
-MODEL_REGISTRY: dict[str, type] = {}
+def _build_registry() -> dict[str, type]:
+    from backend.models.claude import ClaudeClient
+    from backend.models.openai_client import OpenAIClient
+    from backend.models.gemini import GeminiClient
+    from backend.models.mistral import MistralClient
+    from backend.models.groq import GroqClient
+
+    return {
+        "claude": ClaudeClient,
+        "openai": OpenAIClient,
+        "gemini": GeminiClient,
+        "mistral": MistralClient,
+        "groq": GroqClient,
+    }
+
+
+# Lazy-init to avoid import-time side effects from provider SDKs.
+_registry: dict[str, type] | None = None
 
 
 def get_model(name: str):
-    if name not in MODEL_REGISTRY:
-        available = list(MODEL_REGISTRY.keys()) or ["(none registered)"]
-        raise ValueError(f"Unknown model: {name}. Available: {available}")
-    return MODEL_REGISTRY[name]()
+    global _registry
+    if _registry is None:
+        _registry = _build_registry()
+    if name not in _registry:
+        raise ValueError(f"Unknown model: {name}. Available: {list(_registry)}")
+    return _registry[name]()
 
 
 settings = Settings()
