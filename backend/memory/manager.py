@@ -3,6 +3,7 @@ import openai
 from backend.config import settings
 from backend.memory.retriever import MemoryRetriever
 from backend.memory.types import MemoryRecord, MemoryType
+from backend.memory.reconciler import MemoryReconciler
 from backend.memory.writer import MemoryWriter
 
 
@@ -31,6 +32,7 @@ class MemoryManager:
             store_path=settings.CHROMA_STORE_PATH,
         )
         self._writer = MemoryWriter()
+        self._reconciler = MemoryReconciler(self.retriever)
 
     def get_context(self, query: str) -> list[MemoryRecord]:
         """Retrieve relevant memories for injection into the system prompt.
@@ -57,6 +59,7 @@ class MemoryManager:
             user_message=user_message,
             assistant_message=assistant_message,
             retriever=self.retriever,
+            reconciler=self._reconciler,
             source_session=source_session,
         )
 

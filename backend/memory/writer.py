@@ -6,16 +6,15 @@ import openai
 from backend.config import settings
 from backend.memory.retriever import MemoryRetriever
 from backend.memory.types import MemoryRecord, MemoryType
+from backend.memory.reconciler import MemoryReconciler
 from backend.prompts.extraction import EXTRACTION_PROMPT
 
 logger = logging.getLogger(__name__)
 
-# Uses gpt-4o-mini for extraction to keep costs low.
 _EXTRACTION_MODEL = "gpt-4o-mini"
 
-# If a new fact has cosine similarity > this threshold to an existing
-# memory, treat it as a duplicate/update rather than a new entry.
-_DUPLICATE_SIMILARITY_THRESHOLD = 0.85
+# Similarity threshold for triggering reconciliation instead of inserting new.
+_RECONCILE_SIMILARITY_THRESHOLD = 0.85
 
 
 class MemoryWriter:
@@ -28,6 +27,7 @@ class MemoryWriter:
         user_message: str,
         assistant_message: str,
         retriever: MemoryRetriever,
+        reconciler: MemoryReconciler,
         source_session: str | None = None,
     ) -> list[MemoryRecord]:
         facts = self._extract_facts(user_message, assistant_message)
@@ -38,9 +38,10 @@ class MemoryWriter:
         for fact in facts:
             existing = retriever.search(fact, n_results=1, memory_type=MemoryType.SEMANTIC)
             if existing:
-                _record, similarity = existing[0]
-                if similarity >= _DUPLICATE_SIMILARITY_THRESHOLD:
-                    logger.debug("Skipping duplicate fact (sim=%.3f): %s", similarity, fact)
+                existing_record, similarity = existing[0]
+                if similarity >= _RECONCILE_SIMILARITY_THRESHOLD:
+                    result = reconciler.reconcile(existing_record, fact)
+                    stored.append(result)
                     continue
 
             record = MemoryRecord(
