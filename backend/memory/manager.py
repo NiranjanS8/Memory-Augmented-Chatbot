@@ -3,18 +3,9 @@ import openai
 from backend.config import settings
 from backend.memory.retriever import MemoryRetriever
 from backend.memory.types import MemoryRecord, MemoryType
+from backend.memory.writer import MemoryWriter
 
 
-def _openai_embed(text: str) -> list[float]:
-    """All memory embeddings use OpenAI text-embedding-3-small regardless
-    of which chat model is active. This keeps all vectors in the same
-    embedding space so cosine similarity scores remain meaningful."""
-    client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-    response = client.embeddings.create(model="text-embedding-3-small", input=text)
-    return response.data[0].embedding
-
-
-# Cache to avoid re-creating the OpenAI client per call.
 _embed_client: openai.OpenAI | None = None
 
 
@@ -39,6 +30,7 @@ class MemoryManager:
             embed_fn=self._embed_fn,
             store_path=settings.CHROMA_STORE_PATH,
         )
+        self._writer = MemoryWriter()
 
     def get_context(self, query: str) -> list[MemoryRecord]:
         """Retrieve relevant memories for injection into the system prompt.
@@ -51,6 +43,22 @@ class MemoryManager:
             if record.confidence > 0.1:
                 records.append(record)
         return records
+
+    async def save_turn(
+        self,
+        user_message: str,
+        assistant_message: str,
+        source_session: str | None = None,
+    ) -> list[MemoryRecord]:
+        """Extract facts from a conversation turn and store them.
+        Designed to be called via asyncio.create_task (fire-and-forget)."""
+        return await self._writer.extract_and_store(
+            user_id=self.user_id,
+            user_message=user_message,
+            assistant_message=assistant_message,
+            retriever=self.retriever,
+            source_session=source_session,
+        )
 
     def store_memory(
         self,
@@ -72,3 +80,4 @@ class MemoryManager:
 
     def clear_memories(self) -> None:
         self.retriever.clear()
+
