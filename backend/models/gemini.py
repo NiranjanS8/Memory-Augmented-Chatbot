@@ -50,8 +50,8 @@ class GeminiClient(LLMClient):
                 yield chunk.text
 
     def embed(self, text: str) -> list[float]:
-        result = self.client.models.embed_content(
+        embedding_response = self.client.models.embed_content(
             model="text-embedding-004",
             contents=text,
         )
-        return result.embeddings[0].values
+        return embedding_response.embeddings[0].values

@@ -31,22 +31,22 @@ class MemoryRetriever:
         query_embedding = self._embed(query)
         where = {"memory_type": memory_type.value} if memory_type else None
 
-        results = self._collection.query(
+        db_response = self._collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results,
             where=where,
             include=["documents", "metadatas", "distances"],
         )
 
-        if not results["ids"] or not results["ids"][0]:
+        if not db_response["ids"] or not db_response["ids"][0]:
             return []
 
         records = []
         for doc_id, document, metadata, distance in zip(
-            results["ids"][0],
-            results["documents"][0],
-            results["metadatas"][0],
-            results["distances"][0],
+            db_response["ids"][0],
+            db_response["documents"][0],
+            db_response["metadatas"][0],
+            db_response["distances"][0],
         ):
             record = MemoryRecord(
                 id=doc_id,
@@ -99,15 +99,15 @@ class MemoryRetriever:
             self._collection.delete(ids=all_ids)
 
     def list_all(self) -> list[MemoryRecord]:
-        results = self._collection.get(include=["documents", "metadatas"])
-        if not results["ids"]:
+        db_response = self._collection.get(include=["documents", "metadatas"])
+        if not db_response["ids"]:
             return []
 
         records = []
         for doc_id, document, metadata in zip(
-            results["ids"],
-            results["documents"],
-            results["metadatas"],
+            db_response["ids"],
+            db_response["documents"],
+            db_response["metadatas"],
         ):
             records.append(MemoryRecord(
                 id=doc_id,

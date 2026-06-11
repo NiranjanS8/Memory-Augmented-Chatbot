@@ -40,8 +40,8 @@ class MemoryWriter:
             if existing:
                 existing_record, similarity = existing[0]
                 if similarity >= _RECONCILE_SIMILARITY_THRESHOLD:
-                    result = reconciler.reconcile(existing_record, fact)
-                    stored.append(result)
+                    reconciled_record = reconciler.reconcile(existing_record, fact)
+                    stored.append(reconciled_record)
                     continue
 
             record = MemoryRecord(

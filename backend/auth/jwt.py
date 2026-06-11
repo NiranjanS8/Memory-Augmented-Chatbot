@@ -23,12 +23,12 @@ def _get_auth_store() -> AuthStore:
 def create_jwt(user: User) -> str:
     """Issue a signed JWT for the given user."""
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
-    payload = {
+    token_claims = {
         "sub": user.id,
         "email": user.email,
         "exp": expire,
     }
-    return jwt.encode(payload, settings.JWT_SECRET, algorithm=_ALGORITHM)
+    return jwt.encode(token_claims, settings.JWT_SECRET, algorithm=_ALGORITHM)
 
 
 async def get_current_user(
@@ -37,8 +37,8 @@ async def get_current_user(
     """FastAPI dependency — extracts and validates the JWT from the Authorization header."""
     token = credentials.credentials
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[_ALGORITHM])
-        user_id: str | None = payload.get("sub")
+        token_claims = jwt.decode(token, settings.JWT_SECRET, algorithms=[_ALGORITHM])
+        user_id: str | None = token_claims.get("sub")
         if user_id is None:
             raise _credentials_error()
     except JWTError:
