@@ -30,9 +30,9 @@ from backend.schemas import (
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Memory-Augmented Chatbot",
+    title="Mnemo",
     description="A multi-model chatbot with persistent cross-session memory",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
