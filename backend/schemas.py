@@ -25,6 +25,7 @@ class ChatBody(BaseModel):
     conversation_id: str | None = None
     model: str = "openai"
     messages: list[dict] | None = None
+    attachments: list[dict] | None = None
 
 
 class RenameBody(BaseModel):
@@ -41,3 +42,15 @@ class UploadResult(BaseModel):
     content: str | None = None
     filename: str
     media_type: str | None = None
+
+
+class CodeExecutionRequest(BaseModel):
+    code: str
+
+
+class CodeExecutionResponse(BaseModel):
+    stdout: str
+    stderr: str
+    plots: list[str]
+    error: str | None = None
+

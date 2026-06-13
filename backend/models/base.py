@@ -21,12 +21,23 @@ class LLMClient(ABC):
     max_context_tokens: int
 
     @abstractmethod
-    def chat(self, messages: list[Message], system: str = "") -> LLMResponse:
+    def chat(
+        self,
+        messages: list[Message],
+        system: str = "",
+        attachments: list[dict] | None = None,
+    ) -> LLMResponse:
         ...
 
     @abstractmethod
-    def stream(self, messages: list[Message], system: str = "") -> Generator[str, None, None]:
+    def stream(
+        self,
+        messages: list[Message],
+        system: str = "",
+        attachments: list[dict] | None = None,
+    ) -> Generator[str, None, None]:
         ...
+
 
     @abstractmethod
     def embed(self, text: str) -> list[float]:

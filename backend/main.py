@@ -21,6 +21,8 @@ from backend.schemas import (
     RenameBody,
     TokenResponse,
     UploadResult,
+    CodeExecutionRequest,
+    CodeExecutionResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -170,6 +172,26 @@ async def chat_stream(body: ChatBody, user: User = Depends(get_current_user)):
 
     chat_messages.append(Message(role="user", content=body.message))
 
+    # Check if we need real-time search
+    needs_search = False
+    search_query = body.message
+    try:
+        from backend.prompts.router import SEARCH_ROUTER_PROMPT
+        import openai
+        router_client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        router_response = router_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": SEARCH_ROUTER_PROMPT.format(message=body.message)}],
+            response_format={"type": "json_object"},
+            temperature=0,
+            max_tokens=64,
+        )
+        router_data = json.loads(router_response.choices[0].message.content)
+        needs_search = bool(router_data.get("needs_search", False))
+        search_query = str(router_data.get("search_query", body.message))
+    except Exception as e:
+        logger.warning("Search routing failed: %s", e)
+
     async def generate():
         memories = []
         try:
@@ -184,6 +206,16 @@ async def chat_stream(body: ChatBody, user: User = Depends(get_current_user)):
         yield json.dumps({"type": "memory", "data": serialized_memories, "conversation_id": conv_id})
 
         system_prompt = build_system_prompt(memories, body.model)
+        if needs_search:
+            yield json.dumps({"type": "search", "data": f"Searching for: {search_query}"})
+            try:
+                from backend.tools.web_search import WebSearchTool
+                search_tool = WebSearchTool()
+                search_results = search_tool.search(search_query)
+                search_context = search_tool.format_for_prompt(search_results)
+                system_prompt += "\n\n" + search_context
+            except Exception as e:
+                logger.warning("Web search failed: %s", e)
 
         try:
             llm = get_model(body.model)
@@ -193,7 +225,7 @@ async def chat_stream(body: ChatBody, user: User = Depends(get_current_user)):
 
         full_response = ""
         try:
-            for chunk in llm.stream(chat_messages, system=system_prompt):
+            for chunk in llm.stream(chat_messages, system=system_prompt, attachments=body.attachments):
                 full_response += chunk
                 yield json.dumps({"type": "chunk", "data": chunk})
         except Exception as e:
@@ -203,7 +235,17 @@ async def chat_stream(body: ChatBody, user: User = Depends(get_current_user)):
 
         yield json.dumps({"type": "done", "data": ""})
 
-        _conv_store.append_message(conv_id, "user", body.message)
+        user_message_text = body.message
+        if body.attachments:
+            attachment_notes = []
+            for att in body.attachments:
+                if att["type"] == "image":
+                    attachment_notes.append(f"[Image: {att.get('filename') or 'upload.png'}]")
+                else:
+                    attachment_notes.append(f"[File: {att.get('filename') or 'upload'}]")
+            user_message_text = "\n".join(attachment_notes) + "\n" + user_message_text
+
+        _conv_store.append_message(conv_id, "user", user_message_text)
         _conv_store.append_message(conv_id, "assistant", full_response)
 
         asyncio.create_task(
@@ -211,6 +253,19 @@ async def chat_stream(body: ChatBody, user: User = Depends(get_current_user)):
         )
 
     return EventSourceResponse(generate())
+
+
+@app.post("/api/chat/execute", response_model=CodeExecutionResponse)
+async def execute_code(body: CodeExecutionRequest, user: User = Depends(get_current_user)):
+    from backend.tools.code_interpreter import CodeInterpreter
+    interpreter = CodeInterpreter()
+    res = interpreter.execute(body.code)
+    return CodeExecutionResponse(
+        stdout=res["stdout"],
+        stderr=res["stderr"],
+        plots=res["plots"],
+        error=res["error"],
+    )
 
 
 
@@ -245,39 +300,11 @@ async def clear_memories(user: User = Depends(get_current_user)):
 async def upload_file(file: UploadFile, user: User = Depends(get_current_user)):
     content_bytes = await file.read()
     filename = file.filename or "upload"
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-
-    if ext in ("png", "jpg", "jpeg", "gif", "webp"):
-        encoded = base64.b64encode(content_bytes).decode()
-        return UploadResult(
-            type="image",
-            content=encoded,
-            filename=filename,
-            media_type=f"image/{ext}",
-        )
-
-    if ext == "pdf":
-        try:
-            import pypdf
-            import io
-            reader = pypdf.PdfReader(io.BytesIO(content_bytes))
-            text = "\n".join(page.extract_text() or "" for page in reader.pages)
-        except Exception as e:
-            text = f"[PDF parsing failed: {e}]"
-        return UploadResult(type="text", content=f"[PDF: {filename}]\n{text}", filename=filename)
-
-    if ext == "csv":
-        try:
-            import pandas as pd
-            import io
-            df = pd.read_csv(io.BytesIO(content_bytes))
-            text = df.to_markdown(index=False)
-        except Exception as e:
-            text = f"[CSV parsing failed: {e}]"
-        return UploadResult(type="text", content=f"[CSV: {filename}]\n{text}", filename=filename)
-
-    try:
-        text = content_bytes.decode("utf-8")
-    except UnicodeDecodeError:
-        text = f"[Binary file: {filename}, {len(content_bytes)} bytes]"
-    return UploadResult(type="text", content=f"[File: {filename}]\n{text}", filename=filename)
+    from backend.utils.file_handler import process_upload
+    res = process_upload(content_bytes, filename)
+    return UploadResult(
+        type=res["type"],
+        content=res.get("content"),
+        filename=res["filename"],
+        media_type=res.get("media_type"),
+    )
