@@ -1,0 +1,142 @@
+[
+  {
+    "id": "lang_pref_python",
+    "category": "language_preference",
+    "session_1": [
+      {
+        "user": "I mainly use Python for everything — backend, scripting, data pipelines. It's my go-to language.",
+        "assistant": "Python is a great choice for all of those! Its versatility across backend development, automation, and data work makes it a natural default. Do you use any other languages for specific tasks?"
+      },
+      {
+        "user": "Sometimes TypeScript for frontend, but I always reach for Python first.",
+        "assistant": "That makes sense. Python for the heavy lifting, TypeScript when you need browser-side work. A solid combination."
+      }
+    ],
+    "session_2_query": "What programming language should I use for my new data pipeline project?",
+    "expected_facts": ["user prefers Python", "Python is their go-to language", "uses Python for data pipelines"]
+  },
+  {
+    "id": "framework_pref_fastapi",
+    "category": "framework_preference",
+    "session_1": [
+      {
+        "user": "I chose FastAPI over Django for this project because I need async support and auto-generated OpenAPI docs.",
+        "assistant": "FastAPI is an excellent choice for those requirements. Its native async support and automatic Swagger docs generation make it ideal for modern API development."
+      }
+    ],
+    "session_2_query": "I'm starting a new REST API project. Which Python framework do you think I should use?",
+    "expected_facts": ["user prefers FastAPI over Django", "values async support", "values auto-generated docs"]
+  },
+  {
+    "id": "project_context_chatbot",
+    "category": "project_context",
+    "session_1": [
+      {
+        "user": "I'm building a memory-augmented chatbot that remembers things across sessions. It uses ChromaDB for vector storage.",
+        "assistant": "That's a fascinating project! Using ChromaDB for vector storage gives you efficient semantic search over memories. How are you handling memory extraction from conversations?"
+      },
+      {
+        "user": "I extract semantic facts and episodic memories from each turn, then reconcile conflicts with existing memories.",
+        "assistant": "That reconciliation step is crucial — it prevents contradictory memories from accumulating. Smart approach to maintaining memory consistency."
+      }
+    ],
+    "session_2_query": "Can you remind me what vector database I'm using for my project?",
+    "expected_facts": ["user is building a memory-augmented chatbot", "uses ChromaDB for vector storage"]
+  },
+  {
+    "id": "personal_bg_deepmind",
+    "category": "personal_background",
+    "session_1": [
+      {
+        "user": "I work at Google DeepMind on the advanced agentic coding team. We're based in London.",
+        "assistant": "That's incredible! Working on agentic coding at DeepMind must be fascinating. London is a great hub for AI research. What aspects of agentic coding are you focused on?"
+      }
+    ],
+    "session_2_query": "Where do I work again?",
+    "expected_facts": ["works at Google DeepMind", "on the advanced agentic coding team", "based in London"]
+  },
+  {
+    "id": "past_decision_postgres",
+    "category": "past_decisions",
+    "session_1": [
+      {
+        "user": "We evaluated PostgreSQL and MySQL for our production database. Ended up going with PostgreSQL because of its JSONB support and better concurrency handling.",
+        "assistant": "PostgreSQL's JSONB support is a strong differentiator, especially if you're storing semi-structured data. Its MVCC concurrency model also handles high-traffic scenarios well. Good call."
+      }
+    ],
+    "session_2_query": "Which database did I choose for production and why?",
+    "expected_facts": ["chose PostgreSQL over MySQL", "JSONB support was a factor", "better concurrency handling"]
+  },
+  {
+    "id": "correction_timezone",
+    "category": "user_correction",
+    "session_1": [
+      {
+        "user": "I'm in the PST timezone by the way.",
+        "assistant": "Noted — PST timezone. I'll keep that in mind for any time-related discussions."
+      },
+      {
+        "user": "Actually wait, I moved recently. I'm in EST now, not PST.",
+        "assistant": "Got it, updated! You're in EST now. Thanks for the correction."
+      }
+    ],
+    "session_2_query": "What timezone am I in?",
+    "expected_facts": ["user is in EST", "previously was in PST but corrected to EST"]
+  },
+  {
+    "id": "style_pref_functional",
+    "category": "language_preference",
+    "session_1": [
+      {
+        "user": "I prefer functional programming patterns over OOP when possible. Pure functions, immutability, composition over inheritance.",
+        "assistant": "Functional programming brings great benefits — easier testing with pure functions, fewer side effects, and composition leads to more flexible code. Do you apply this across all languages?"
+      },
+      {
+        "user": "Mostly in Python and TypeScript. I use dataclasses instead of full class hierarchies.",
+        "assistant": "Dataclasses are a great middle ground — you get structured data without the weight of traditional OOP. Clean approach."
+      }
+    ],
+    "session_2_query": "When writing Python code for me, should you use classes with inheritance or a different style?",
+    "expected_facts": ["prefers functional programming over OOP", "prefers composition over inheritance", "uses dataclasses"]
+  },
+  {
+    "id": "tool_pref_vscode",
+    "category": "past_decisions",
+    "session_1": [
+      {
+        "user": "I use VS Code with Vim keybindings. Also have the Copilot extension and GitLens installed.",
+        "assistant": "VS Code with Vim keybindings is a powerful combo — you get the modal editing efficiency with VS Code's extension ecosystem. Copilot and GitLens are great productivity boosters."
+      }
+    ],
+    "session_2_query": "What editor and setup do I use for coding?",
+    "expected_facts": ["uses VS Code", "uses Vim keybindings", "has Copilot and GitLens extensions"]
+  },
+  {
+    "id": "deploy_pref_k8s",
+    "category": "past_decisions",
+    "session_1": [
+      {
+        "user": "For deployment, we containerize everything with Docker and orchestrate with Kubernetes on GKE. We use Helm charts for config management.",
+        "assistant": "Docker + Kubernetes on GKE is a solid production stack. Helm charts keep your configurations versioned and reproducible. Are you using any specific CI/CD pipeline?"
+      },
+      {
+        "user": "GitHub Actions for CI/CD. It triggers on every push to main.",
+        "assistant": "GitHub Actions integrates nicely with that stack. Push-to-main triggers keep the deployment flow straightforward."
+      }
+    ],
+    "session_2_query": "How do we deploy our applications?",
+    "expected_facts": ["uses Docker for containerization", "Kubernetes on GKE for orchestration", "Helm charts for config", "GitHub Actions for CI/CD"]
+  },
+  {
+    "id": "comm_pref_concise",
+    "category": "user_correction",
+    "session_1": [
+      {
+        "user": "When you respond to me, keep it concise. I don't need long explanations — just get to the point with code examples when relevant.",
+        "assistant": "Understood. Concise responses, code-first when applicable."
+      }
+    ],
+    "session_2_query": "How should you format your responses when talking to me?",
+    "expected_facts": ["prefers concise responses", "wants code examples over long explanations"]
+  }
+]

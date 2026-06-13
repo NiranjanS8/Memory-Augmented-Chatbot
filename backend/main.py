@@ -5,6 +5,7 @@ import logging
 
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from sse_starlette.sse import EventSourceResponse
 
 from backend.auth.jwt import create_jwt, get_current_user
@@ -19,6 +20,7 @@ from backend.schemas import (
     LoginBody,
     RegisterBody,
     RenameBody,
+    SpeakBody,
     TokenResponse,
     UploadResult,
     CodeExecutionRequest,
@@ -308,3 +310,32 @@ async def upload_file(file: UploadFile, user: User = Depends(get_current_user)):
         filename=res["filename"],
         media_type=res.get("media_type"),
     )
+
+
+@app.post("/api/voice/transcribe")
+async def voice_transcribe(file: UploadFile, user: User = Depends(get_current_user)):
+    audio_bytes = await file.read()
+    filename = file.filename or "audio.wav"
+    from backend.voice.stt import SpeechToText
+    stt = SpeechToText()
+    try:
+        transcript = stt.transcribe(audio_bytes, filename)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {e}")
+    return {"transcript": transcript}
+
+
+@app.post("/api/voice/speak")
+async def voice_speak(body: SpeakBody, user: User = Depends(get_current_user)):
+    from backend.voice.tts import TextToSpeech
+    try:
+        tts = TextToSpeech()
+        audio_bytes = tts.synthesize(body.text, body.voice)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Speech synthesis failed: {e}")
+    return Response(content=audio_bytes, media_type="audio/mpeg")
+
